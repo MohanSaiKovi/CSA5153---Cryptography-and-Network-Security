@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MATRIX_SIZE 5
+
+void prepare_text(char *text) {
+    int len = strlen(text);
+    for (int i = 0; i < len; i++) {
+        if (text[i] == ' ') {
+            for (int j = i; j < len - 1; j++) {
+                text[j] = text[j + 1];
+            }
+            text[len - 1] = '\0';
+            len--;
+            i--;
+        }
+    }
+}
+
+void create_playfair_matrix(const char *keyword, char matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int used[26] = {0};
+    int k = 0;
+
+    for (int i = 0; keyword[i] != '\0'; i++) {
+        char c = toupper(keyword[i]);
+        if (c == 'J') c = 'I'; // Convention to treat J as I
+        if (isalpha(c) && !used[c - 'A']) {
+            matrix[k / MATRIX_SIZE][k % MATRIX_SIZE] = c;
+            used[c - 'A'] = 1;
+            k++;
+        }
+    }
+
+    for (int i = 0; i < 26; i++) {
+        if (i == 'J' - 'A') continue;
+        if (!used[i]) {
+            matrix[k / MATRIX_SIZE][k % MATRIX_SIZE] = 'A' + i;
+            k++;
+        }
+    }
+}
+
+void decrypt_playfair(const char *ciphertext, char *plaintext, const char matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i += 2) {
+        char a = toupper(ciphertext[i]);
+        char b = toupper(ciphertext[i + 1]);
+        if (a == 'J') a = 'I';
+        if (b == 'J') b = 'I';
+
+        int row1, col1, row2, col2;
+        int foundA = 0, foundB = 0;
+
+        for (int r = 0; r < MATRIX_SIZE; r++) {
+            for (int c = 0; c < MATRIX_SIZE; c++) {
+                if (matrix[r][c] == a) {
+                    row1 = r;
+                    col1 = c;
+                    foundA = 1;
+                }
+                if (matrix[r][c] == b) {
+                    row2 = r;
+                    col2 = c;
+                    foundB = 1;
+                }
+            }
+        }
+
+        if (foundA && foundB) {
+            if (row1 == row2) {
+                plaintext[i] = matrix[row1][(col1 - 1 + MATRIX_SIZE) % MATRIX_SIZE];
+                plaintext[i + 1] = matrix[row2][(col2 - 1 + MATRIX_SIZE) % MATRIX_SIZE];
+            } else if (col1 == col2) {
+                plaintext[i] = matrix[(row1 - 1 + MATRIX_SIZE) % MATRIX_SIZE][col1];
+                plaintext[i + 1] = matrix[(row2 - 1 + MATRIX_SIZE) % MATRIX_SIZE][col2];
+            } else {
+                plaintext[i] = matrix[row1][col2];
+                plaintext[i + 1] = matrix[row2][col1];
+            }
+        }
+    }
+    plaintext[len] = '\0';
+}
+
+int main() {
+    char keyword[] = "KEYWORD";
+    char ciphertext[] = "KXJEY UREBE ZWEHE WRYTU HEYFS KREHE GOYFI WTTTU OLKSY CAJPO BOTEI ZONTX BYBNT GONEY CUZWR GDSON SXBOU YWRHE BAAHY USEDQ";
+    char plaintext[sizeof(ciphertext)];
+
+    prepare_text(ciphertext);
+    char matrix[MATRIX_SIZE][MATRIX_SIZE];
+    create_playfair_matrix(keyword, matrix);
+
+    decrypt_playfair(ciphertext, plaintext, matrix);
+
+    printf("Decrypted message: %s\n", plaintext);
+
+    return 0;
+}
