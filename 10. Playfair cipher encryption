@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MATRIX_SIZE 5
+
+void prepare_text(char *text) {
+    int len = strlen(text);
+    for (int i = 0; i < len; i++) {
+        if (text[i] == ' ') {
+            for (int j = i; j < len - 1; j++) {
+                text[j] = text[j + 1];
+            }
+            text[len - 1] = '\0';
+            len--;
+            i--;
+        } else if (text[i] == 'J') {
+            text[i] = 'I';
+        }
+    }
+}
+
+void create_playfair_matrix(char matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    char matrix_data[MATRIX_SIZE][MATRIX_SIZE] = {
+        {'M', 'F', 'H', 'I', 'J'},
+        {'K', 'U', 'N', 'O', 'P'},
+        {'Q', 'Z', 'V', 'W', 'X'},
+        {'Y', 'E', 'L', 'A', 'R'},
+        {'G', 'D', 'S', 'T', 'B'}
+    };
+
+    for (int r = 0; r < MATRIX_SIZE; r++) {
+        for (int c = 0; c < MATRIX_SIZE; c++) {
+            matrix[r][c] = matrix_data[r][c];
+        }
+    }
+}
+
+void encrypt_playfair(const char *plaintext, char *ciphertext, const char matrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i += 2) {
+        char a = plaintext[i];
+        char b = (i + 1 < len) ? plaintext[i + 1] : 'X';
+
+        int row1, col1, row2, col2;
+        int foundA = 0, foundB = 0;
+
+        for (int r = 0; r < MATRIX_SIZE; r++) {
+            for (int c = 0; c < MATRIX_SIZE; c++) {
+                if (matrix[r][c] == a) {
+                    row1 = r;
+                    col1 = c;
+                    foundA = 1;
+                }
+                if (matrix[r][c] == b) {
+                    row2 = r;
+                    col2 = c;
+                    foundB = 1;
+                }
+            }
+        }
+
+        if (foundA && foundB) {
+            if (row1 == row2) {
+                ciphertext[i] = matrix[row1][(col1 + 1) % MATRIX_SIZE];
+                ciphertext[i + 1] = matrix[row2][(col2 + 1) % MATRIX_SIZE];
+            } else if (col1 == col2) {
+                ciphertext[i] = matrix[(row1 + 1) % MATRIX_SIZE][col1];
+                ciphertext[i + 1] = matrix[(row2 + 1) % MATRIX_SIZE][col2];
+            } else {
+                ciphertext[i] = matrix[row1][col2];
+                ciphertext[i + 1] = matrix[row2][col1];
+            }
+        }
+    }
+    ciphertext[len] = '\0';
+}
+
+int main() {
+    char plaintext[] = "Must see you over Cadogan West. Coming at once.";
+    char ciphertext[sizeof(plaintext)];
+    char matrix[MATRIX_SIZE][MATRIX_SIZE];
+
+    prepare_text(plaintext);
+    create_playfair_matrix(matrix);
+    encrypt_playfair(plaintext, ciphertext, matrix);
+
+    printf("Ciphertext: ");
+    for (int i = 0; i < strlen(ciphertext); i++) {
+        if (isalpha(ciphertext[i])) {
+            printf("%c", ciphertext[i]);
+        }
+    }
+    printf("\n");
+
+    return 0;
+}
