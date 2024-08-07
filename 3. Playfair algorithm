@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+void create_key_matrix(char key[], char key_matrix[5][5]) {
+    int alphabet[26] = {0};
+    int x = 0, y = 0;
+
+    for (int i = 0; key[i] != '\0'; i++) {
+        if (key[i] == 'J') key[i] = 'I';
+        if (alphabet[key[i] - 'A'] == 0) {
+            key_matrix[x][y] = key[i];
+            alphabet[key[i] - 'A'] = 1;
+            y++;
+            if (y == 5) {
+                y = 0;
+                x++;
+            }
+        }
+    }
+
+    for (char ch = 'A'; ch <= 'Z'; ch++) {
+        if (ch == 'J') continue;
+        if (alphabet[ch - 'A'] == 0) {
+            key_matrix[x][y] = ch;
+            y++;
+            if (y == 5) {
+                y = 0;
+                x++;
+            }
+        }
+    }
+}
+
+void preprocess_plaintext(char plaintext[], char processed_text[]) {
+    int len = strlen(plaintext);
+    int i, j = 0;
+
+    for (i = 0; i < len; i++) {
+        if (plaintext[i] == 'J') plaintext[i] = 'I';
+        if (isalpha(plaintext[i])) {
+            processed_text[j++] = toupper(plaintext[i]);
+            if (j > 1 && processed_text[j-1] == processed_text[j-2]) {
+                processed_text[j-1] = 'X';
+                processed_text[j++] = toupper(plaintext[i]);
+            }
+        }
+    }
+    if (j % 2 != 0) {
+        processed_text[j++] = 'X';
+    }
+    processed_text[j] = '\0';
+}
+
+void find_position(char key_matrix[5][5], char ch, int *x, int *y) {
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 5; j++) {
+            if (key_matrix[i][j] == ch) {
+                *x = i;
+                *y = j;
+                return;
+            }
+        }
+    }
+}
+
+void encrypt_pair(char a, char b, char key_matrix[5][5], char *c1, char *c2) {
+    int x1, y1, x2, y2;
+    find_position(key_matrix, a, &x1, &y1);
+    find_position(key_matrix, b, &x2, &y2);
+
+    if (x1 == x2) {
+        *c1 = key_matrix[x1][(y1 + 1) % 5];
+        *c2 = key_matrix[x2][(y2 + 1) % 5];
+    } else if (y1 == y2) {
+        *c1 = key_matrix[(x1 + 1) % 5][y1];
+        *c2 = key_matrix[(x2 + 1) % 5][y2];
+    } else {
+        *c1 = key_matrix[x1][y2];
+        *c2 = key_matrix[x2][y1];
+    }
+}
+
+void encrypt_playfair(char plaintext[], char key_matrix[5][5], char ciphertext[]) {
+    char processed_text[100];
+    preprocess_plaintext(plaintext, processed_text);
+    int len = strlen(processed_text);
+    int k = 0;
+
+    for (int i = 0; i < len; i += 2) {
+        encrypt_pair(processed_text[i], processed_text[i+1], key_matrix, &ciphertext[k], &ciphertext[k+1]);
+        k += 2;
+    }
+    ciphertext[k] = '\0';
+}
+
+int main() {
+    char key[30], plaintext[100], ciphertext[100];
+    char key_matrix[5][5];
+
+    printf("Enter the keyword: ");
+    fgets(key, sizeof(key), stdin);
+    key[strcspn(key, "\n")] = '\0';
+
+    for (int i = 0; i < strlen(key); i++) {
+        key[i] = toupper(key[i]);
+    }
+
+    create_key_matrix(key, key_matrix);
+
+    printf("Enter the plaintext: ");
+    fgets(plaintext, sizeof(plaintext), stdin);
+    plaintext[strcspn(plaintext, "\n")] = '\0';
+
+    encrypt_playfair(plaintext, key_matrix, ciphertext);
+
+    printf("Encrypted text: %s\n", ciphertext);
+
+    return 0;
+}
